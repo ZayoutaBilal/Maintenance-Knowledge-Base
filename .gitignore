@@ -1,0 +1,9 @@
+node_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+design_guidelines.md
+attached_assets/Pasted-I-want-you-to-generate-a-complete-Node-js-backend-using_1765033264248.txt
+.env
