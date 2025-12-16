@@ -1,21 +1,14 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Search,
-  Loader2,
-  Wrench,
-  Clock,
-  Sparkles,
-  FileText,
-} from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
-import type { Problem } from "@shared/schema";
-import { formatDistanceToNow } from "date-fns";
+import {useState} from "react";
+import {useMutation} from "@tanstack/react-query";
+import {Link} from "wouter";
+import {Card, CardContent} from "@/components/ui/card";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Clock, FileText, Loader2, Search, Sparkles, Wrench,} from "lucide-react";
+import {apiRequest} from "@/lib/queryClient";
+import type {Problem} from "@shared/schema";
+import {formatDistanceToNow} from "date-fns";
 
 interface SearchResult extends Problem {
   similarity?: number;
@@ -37,9 +30,20 @@ function SearchResultCard({ problem }: { problem: SearchResult }) {
                 {problem.problem}
               </h3>
               {problem.similarity !== undefined && (
-                <Badge variant="outline" size="sm" className="shrink-0">
-                  {Math.round(problem.similarity * 100)}% match
-                </Badge>
+                  <Badge
+                      variant="outline"
+                      size="sm"
+                      className={`shrink-0 ${
+                          problem.similarity >= 0.8
+                              ? "border-green-500 text-green-500"
+                              : problem.similarity >= 0.6
+                                  ? "border-yellow-500 text-yellow-500"
+                                  : "border-red-500 text-red-500"
+                      }`}
+                  >
+                    {Math.round(problem.similarity * 100)}% match
+                  </Badge>
+
               )}
             </div>
             <p className="text-sm text-muted-foreground line-clamp-3">
@@ -77,7 +81,7 @@ export default function SearchPage() {
   const searchMutation = useMutation({
     mutationFn: async (searchQuery: string) => {
       const response = await apiRequest("POST", "/api/problems/search", { query: searchQuery });
-      return response as SearchResult[];
+      return await response.json();
     },
     onSuccess: (data) => {
       setResults(data);

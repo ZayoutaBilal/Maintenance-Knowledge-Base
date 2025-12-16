@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import nodemailer from "nodemailer";
 import cookieParser from "cookie-parser";
 import { storage } from "./storage";
 import { 
@@ -23,6 +24,25 @@ import {
   updatePasswordSchema
 } from "@shared/schema";
 import { ZodError } from "zod";
+import crypto from "crypto";
+import {renderToStaticMarkup} from "react-dom/server";
+import NewPasswordTemplate from "../templates/NewPasswordTemplate.tsx";
+import React from "react";
+import bcrypt from "bcrypt";
+import WelcomeUserEmail from "../templates/WelcomeUserEmail.tsx";
+const generatePassword = (length: number = 12) => {
+  return crypto.randomBytes(length)
+      .toString("base64")
+      .slice(0, length);
+};
+
+const transporter = nodemailer.createTransport({
+  service: process.env.SMTP_SERVICE,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 function handleZodError(error: ZodError) {
   return {
@@ -79,6 +99,46 @@ export async function registerRoutes(
     return res.json({ user: req.user });
   });
 
+
+  app.post("/api/auth/reset-password",async (req, res) => {
+    if (!req.body?.email) {
+      return res.status(400).json({message: "Email is required"});
+    }
+
+    const user = await storage.getUserByEmail(req.body?.email);
+
+    if(!user || user.email !== req.body?.email){
+      return res.status(401).json({message: "Invalid email"});
+    }
+
+    const newPassword = generatePassword();
+
+    try {
+
+      const htmlContent = renderToStaticMarkup(
+          React.createElement(NewPasswordTemplate, {
+            name:user.username,newPassword:newPassword
+          })
+      );
+
+      const mailOptions = {
+        from: `Maintenance Knowledge Base`,
+        to: user.email,
+        subject: `📩 New Password`,
+        html: htmlContent,
+      };
+
+      await transporter.sendMail(mailOptions);
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUserPassword(user.id, hashedPassword);
+
+      res.status(200).json({ message: "Password updated successfully, check your email" });
+    } catch (error) {
+      console.error("Email Error:", error);
+      res.status(500).json({ error: "Could not send email" });
+    }
+  });
+
   app.post("/api/auth/change-password", authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { currentPassword, newPassword } = updatePasswordSchema.parse(req.body);
@@ -116,7 +176,8 @@ export async function registerRoutes(
 
   app.post("/api/users", authMiddleware, isAdmin, async (req: AuthRequest, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      const newPassword = generatePassword();
+      const userData = insertUserSchema.parse({...req.body,password:newPassword});
       
       const existingUsername = await storage.getUserByUsername(userData.username);
       if (existingUsername) {
@@ -129,6 +190,27 @@ export async function registerRoutes(
       }
 
       const newUser = await storage.createUser(userData);
+
+      try {
+        const htmlContent = renderToStaticMarkup(
+            React.createElement(WelcomeUserEmail, {
+              username:userData.username,password:newPassword,
+              role:userData.role?.toUpperCase() || "VISITOR",
+              createdBy:userData.createdBy?.toLowerCase() || "A member",
+              createdAt:Date.now().toString(),
+              websiteUrl: process.env.WEBSITE_URL
+            })
+        );
+
+        const mailOptions = {
+          from: `Maintenance Knowledge Base`,
+          to: userData.email,
+          subject: `Your Account Has Been Created`,
+          html: htmlContent,
+        };
+        await transporter.sendMail(mailOptions);
+      }catch (error){}
+
       return res.status(201).json(newUser);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -340,25 +422,40 @@ export async function registerRoutes(
       }
 
       const allProblems = await storage.getAllProblems();
-      const problemsWithEmbeddings = allProblems.map(p => ({
-        id: p.id,
-        problem: p.problem,
-        solution: p.solution,
-        embedding: p.embedding as number[] | null,
-      }));
+      // const problemsWithEmbeddings = allProblems.map(p => ({
+      //   id: p.id,
+      //   problem: p.problem,
+      //   solution: p.solution,
+      //   embedding: p.embedding as number[] | null,
+      // }));
+      const problemsWithEmbeddings = await Promise.all(
+          allProblems.map(async p => {
+            let embedding = p.embedding as number[] | null;
+            if (!embedding || !Array.isArray(embedding)) {
+              embedding = await generateEmbedding(
+                  `${p.problem} ${p.solution} ${p.tags?.join(" ") ?? ""}`
+              );
+            }
+            return { id: p.id, problem: p.problem, solution: p.solution, embedding };
+          })
+      );
 
       const searchResults = await semanticSearch(query, problemsWithEmbeddings);
-      
-      const topResults = searchResults.slice(0, 10);
+
+      const topResults = searchResults
+          .filter(r => r.similarity > 0.5) // stricter threshold
+          .slice(0, 10);
+
       const resultProblems = topResults.map(result => {
         const problem = allProblems.find(p => p.id === result.id);
         return {
           ...problem,
           similarity: result.similarity,
         };
-      }).filter(p => p.similarity > 0.3);
+      });
 
       return res.json(resultProblems);
+
     } catch (error) {
       console.error("Semantic search error:", error);
       return res.status(500).json({ message: "Search failed" });

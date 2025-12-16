@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import {pgTable, text, varchar, timestamp, integer, jsonb, boolean} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -18,8 +18,10 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   role: text("role").notNull().default(UserRole.VISITOR),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: text("created_by"),
 });
 
 export const problems = pgTable("problems", {
@@ -35,16 +37,22 @@ export const problems = pgTable("problems", {
   embedding: jsonb("embedding"),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  email: true,
-  password: true,
-  role: true,
-}).extend({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum([UserRole.VISITOR, UserRole.EDITOR, UserRole.SUPERVISOR, UserRole.ADMIN]).optional(),
-});
+export const insertUserSchema = createInsertSchema(users)
+    .pick({
+      username: true,
+      email: true,
+      password: true,
+      role: true
+    })
+    .extend({
+      email: z.string().email("Invalid email address"),
+      password: z.string().min(6, "Password must be at least 6 characters"),
+      role: z
+          .enum([UserRole.VISITOR, UserRole.EDITOR, UserRole.SUPERVISOR, UserRole.ADMIN])
+          .optional(),
+      createdBy: z.string().optional(),
+      isDeleted: z.boolean().optional(),
+    });
 
 export const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
