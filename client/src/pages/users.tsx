@@ -75,7 +75,6 @@ const roleColors: Record<string, string> = {
 const createUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(["visitor", "editor", "supervisor", "admin"]),
 });
 
@@ -112,7 +111,6 @@ export default function UsersPage() {
     defaultValues: {
       username: "",
       email: "",
-      password: "",
       role: "visitor",
     },
   });
@@ -135,7 +133,7 @@ export default function UsersPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateUserForm) => {
-      return apiRequest("POST", "/api/users", data);
+      return apiRequest("POST", "/api/users", {...data,createdBy:currentUser?.username});
     },
     onSuccess: () => {
       toast({ title: "User created", description: "The user has been successfully created." });
@@ -403,19 +401,6 @@ export default function UsersPage() {
               />
               <FormField
                 control={createForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="password" data-testid="input-create-password" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={createForm.control}
                 name="role"
                 render={({ field }) => (
                   <FormItem>
@@ -428,8 +413,8 @@ export default function UsersPage() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="visitor">Visitor (Read-only)</SelectItem>
-                        <SelectItem value="editor">Editor (Can add)</SelectItem>
-                        <SelectItem value="supervisor">Supervisor (Full access)</SelectItem>
+                        <SelectItem value="editor">Editor (Read & Edit)</SelectItem>
+                        <SelectItem value="supervisor">Supervisor (Read & Edit & Delete)</SelectItem>
                         <SelectItem value="admin">Admin (All + Users)</SelectItem>
                       </SelectContent>
                     </Select>
@@ -498,8 +483,8 @@ export default function UsersPage() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="visitor">Visitor (Read-only)</SelectItem>
-                        <SelectItem value="editor">Editor (Can add)</SelectItem>
-                        <SelectItem value="supervisor">Supervisor (Full access)</SelectItem>
+                        <SelectItem value="editor">Editor (Read & Edit)</SelectItem>
+                        <SelectItem value="supervisor">Supervisor (Read & Edit & Delete)</SelectItem>
                         <SelectItem value="admin">Admin (All + Users)</SelectItem>
                       </SelectContent>
                     </Select>

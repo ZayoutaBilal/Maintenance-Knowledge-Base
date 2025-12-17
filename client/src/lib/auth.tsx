@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 interface AuthContextType {
   user: SafeUser | null;
   isLoading: boolean;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -99,6 +100,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const sendPasswordResetEmail = async (email: string) => {
+    if (!email) throw new Error("Email is required");
+
+    const response = await fetch(`api/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await response.json();
+
+    toast({
+      title: "Reset Password",
+      description: data?.message,
+    });
+
+    if (!response.ok) {
+      toast({
+        title: "Reset Password",
+        description: data?.message || "Failed to send reset email",
+        variant: "destructive",
+      });
+      throw new Error(data?.message || "Failed to send reset email");
+    }
+  };
+
   const hasRole = (allowedRoles: UserRoleType[]): boolean => {
     if (!user) return false;
     return allowedRoles.includes(user.role as UserRoleType);
@@ -113,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
+        sendPasswordResetEmail,
         login,
         logout,
         refreshUser,

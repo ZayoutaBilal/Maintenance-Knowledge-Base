@@ -19,6 +19,8 @@ async function seed() {
       email: "admin@gmail.com",
       password: hashedPassword,
       role: "admin",
+      isDeleted:false,
+      createdBy:"System"
     });
 
     console.log("Admin user created:");
