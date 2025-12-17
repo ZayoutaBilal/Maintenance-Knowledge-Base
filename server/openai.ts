@@ -1,19 +1,19 @@
-import OpenAI from "openai";
+// import OpenAI from "openai";
 
-let openai: OpenAI | null = null;
+// let openai: OpenAI | null = null;
 
-function getOpenAIClient(): OpenAI {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OpenAI API key is not configured");
-  }
-  if (!openai) {
-    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
-  return openai;
-}
+// function getOpenAIClient(): OpenAI {
+//   if (!process.env.OPENAI_API_KEY) {
+//     throw new Error("OpenAI API key is not configured");
+//   }
+//   if (!openai) {
+//     openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+//   }
+//   return openai;
+// }
 
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const res = await fetch("http://127.0.0.1:8000/embed", {
+  const res = await fetch(`${process.env.FASTAPI_URL}/embed`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
