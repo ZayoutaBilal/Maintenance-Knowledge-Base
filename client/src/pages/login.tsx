@@ -41,9 +41,12 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginForm) => {
-    setIsLoading(true);
-    await login(data.username, data.password);
-    setIsLoading(false);
+    try{
+        setIsLoading(true);
+        await login(data.username, data.password);
+    }catch (error){} finally {
+        setIsLoading(false);
+    }
   };
 
   const onForgotSubmit = async (data: ForgotPasswordForm) => {
