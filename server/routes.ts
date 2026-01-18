@@ -1,5 +1,4 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
 import nodemailer from "nodemailer";
 import cookieParser from "cookie-parser";
 import { storage } from "./storage";
@@ -28,8 +27,9 @@ import crypto from "crypto";
 import {renderToStaticMarkup} from "react-dom/server";
 import NewPasswordTemplate from "../templates/NewPasswordTemplate.tsx";
 import React from "react";
-import bcrypt from "bcrypt";
 import WelcomeUserEmail from "../templates/WelcomeUserEmail.tsx";
+
+
 const generatePassword = (length: number = 12) => {
   return crypto.randomBytes(length)
       .toString("base64")
@@ -51,10 +51,8 @@ function handleZodError(error: ZodError) {
   };
 }
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
+export async function registerRoutes(app: Express){
+
   app.use(cookieParser());
 
   app.post("/api/auth/login", async (req, res) => {
@@ -86,7 +84,7 @@ export async function registerRoutes(
       if (error instanceof ZodError) {
         return res.status(400).json(handleZodError(error));
       }
-      return res.status(500).json({ message: "Login failed" });
+      return res.status(500).json({ message: "Login g failed",error : error });
     }
   });
 
@@ -470,6 +468,4 @@ export async function registerRoutes(
       return res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
-
-  return httpServer;
 }
