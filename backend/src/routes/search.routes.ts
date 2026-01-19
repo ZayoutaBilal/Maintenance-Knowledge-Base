@@ -1,17 +1,16 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { db } from '../config/database';
-import { problems } from '../models/schema';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { generateEmbedding, cosineSimilarity } from '../services/openai.service';
 
 const router = Router();
 
-router.post('/', authenticate, asyncHandler(async (req, res) => {
+router.post('/', authenticate, asyncHandler(async (req:Request, res:Response) => {
     const { query } = req.body;
 
-    if (!query || query.trim().length === 0) {
-        return res.status(400).json({ message: 'Query is required' });
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+        return res.status(400).json({ message: 'Query is required and must be a string' });
     }
 
     try {
@@ -27,7 +26,7 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
         const results = allProblems
             .filter(p => p.embedding)
             .map(problem => {
-                const problemEmbedding = JSON.parse(problem.embedding!);
+                const problemEmbedding = problem.embedding! as number[];
                 const similarity = cosineSimilarity(queryEmbedding, problemEmbedding);
                 return { ...problem, similarity };
             })

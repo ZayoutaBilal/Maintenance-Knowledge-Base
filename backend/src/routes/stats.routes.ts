@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { sql } from 'drizzle-orm';
 import { db } from '../config/database';
 import { problems, users } from '../models/schema';
@@ -7,7 +7,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
-router.get('/', authenticate, asyncHandler(async (req, res) => {
+router.get('/', authenticate, asyncHandler(async (req: Request, res: Response) => {
     const [totalProblems] = await db.select({ count: sql<number>`count(*)` }).from(problems);
     const [totalUsers] = await db.select({ count: sql<number>`count(*)` }).from(users);
 
