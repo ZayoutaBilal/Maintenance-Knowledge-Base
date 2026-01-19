@@ -1,4 +1,3 @@
-// backend/src/controllers/problems.controller.ts
 import { Response } from 'express';
 import { eq, desc, and, ilike, or } from 'drizzle-orm';
 import { db } from '../config/database';
@@ -16,8 +15,8 @@ export const getProblems = asyncHandler(async (req: AuthRequest, res: Response) 
     if (search) {
         conditions.push(
             or(
-                ilike(problems.problemDescription, `%${search}%`),
-                ilike(problems.solutionDescription, `%${search}%`)
+                ilike(problems.solution, `%${search}%`),
+                ilike(problems.solution, `%${search}%`)
             )
         );
     }
@@ -71,7 +70,7 @@ export const createProblem = asyncHandler(async (req: AuthRequest, res: Response
     let embedding: string | undefined;
     try {
         const embeddingVector = await generateEmbedding(
-            `${validatedData.problemDescription} ${validatedData.solutionDescription}`
+            `${validatedData.solution} ${validatedData.solution}`
         );
         embedding = JSON.stringify(embeddingVector);
     } catch (error) {
@@ -118,10 +117,10 @@ export const updateProblem = asyncHandler(async (req: AuthRequest, res: Response
 
     // Regenerate embedding if descriptions changed
     let embedding = existingProblem.embedding;
-    if (validatedData.problemDescription || validatedData.solutionDescription) {
+    if (validatedData.problem || validatedData.solution) {
         try {
-            const problem = validatedData.problemDescription || existingProblem.problemDescription;
-            const solution = validatedData.solutionDescription || existingProblem.solutionDescription;
+            const problem = validatedData.problem || existingProblem.problem;
+            const solution = validatedData.solution || existingProblem.solution;
             const embeddingVector = await generateEmbedding(`${problem} ${solution}`);
             embedding = JSON.stringify(embeddingVector);
         } catch (error) {

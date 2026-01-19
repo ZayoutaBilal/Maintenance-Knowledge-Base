@@ -31,17 +31,16 @@ export const authenticate = async (
     }
 };
 
-export const authorize = (...allowedRoles: Role[]): RequestHandler =>
-        (req, res, next) => {
-            const authReq = req as AuthRequest;
+export const authorize = (...allowedRoles: Role[]): RequestHandler => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
 
-            if (!authReq.user) {
-                return res.status(401).json({ message: "Authentication required" });
-            }
+        if (!allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({ message: 'Insufficient permissions' });
+        }
 
-            if (!allowedRoles.includes(authReq.user.role)) {
-                return res.status(403).json({ message: "Insufficient permissions" });
-            }
-
-            next();
-        };
+        next();
+    };
+};

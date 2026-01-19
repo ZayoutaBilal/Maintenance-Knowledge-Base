@@ -15,7 +15,9 @@ export class AppError extends Error {
 
 export const errorHandler = (
     err: Error | AppError | ZodError,
-    res: Response
+    req: Request,
+    res: Response,
+    next: NextFunction
 ) => {
 
     // Zod validation error

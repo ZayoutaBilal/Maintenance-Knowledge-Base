@@ -2,18 +2,20 @@
 import jwt from "jsonwebtoken";
 import {Role, SafeUser} from "../models/schema";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const JWT_SECRET = process.env.JWT_SECRET as string;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'];
 
 export const generateToken = (user: SafeUser): string => {
 
+    const payload = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+    };
+
     return jwt.sign(
-        {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role
-        },
+        payload,
         JWT_SECRET,
         { expiresIn: JWT_EXPIRES_IN }
     );

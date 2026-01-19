@@ -1,10 +1,9 @@
-import {Router} from 'express';
 import {eq} from 'drizzle-orm';
 import {db} from '../config/database';
 import {Role, users} from '../models/schema';
 import {authenticate, authorize} from '../middleware/auth';
 import {AppError, asyncHandler} from '../middleware/errorHandler';
-
+import { Router, Request, Response } from 'express';
 const router = Router();
 
 // Get all users (admin only)
@@ -16,7 +15,7 @@ router.get('/', authenticate, authorize(Role.ADMIN), asyncHandler(async (req: Re
 }));
 
 // Update user role (admin only)
-router.put('/:id/role', authenticate, authorize(Role.ADMIN), asyncHandler(async (req, res) => {
+router.put('/:id/role', authenticate, authorize(Role.ADMIN), asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { role } = req.body;
 
